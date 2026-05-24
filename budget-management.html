@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>データ推進部 運営費管理 2026年度</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; background: #0f172a; color: #f1f5f9; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ===== 定数 =====
+const GAS_DEPLOYMENT_URL = 'https://script.google.com/macros/s/AKfycbzrXUJkz8yKfBYmK3I1NQHwJOBM-PSO4dcfPXnOgbAkM1bh9N5VEs9cAFkrJtZjy0w/exec';
+const STORAGE_KEY = 'datapro_budget_2026_v1';
+const YEARLY_BUDGET = 5560000;
+const CATEGORIES = ['予算化項目', '追加項目', 'コストセンター原価'];
+const AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5分
+const STATUS_FILTERS = [
+  { value: 'all',      label: 'すべて' },
+  { value: 'actual',   label: '実績あり' },
+  { value: 'forecast', label: '見込あり' },
+  { value: 'none',     label: '未執行' },
+];
+
+// ===== 初期データ（合計が引継書と一致するよう設定）=====
+// 予算承認額合計 = 4,490,644 / 実績合計 = 3,297,064 / 使用見込合計 = 1,129,180
+const INITIAL_CASES = [
+  // ── 予算化項目 ──
+  {
+    id: 1, category: '予算化項目', executionDate: '',
+    name: 'LineWorks 契約費用', budget26: 2160000,
+    actual: 2160000, forecast: 0,
+    responsible: '', details: '216万で400アカウントで契約。2026年4月契約',
+  },
+  {
+    id: 2, category: '予算化項目', executionDate: '',
+    name: 'LineWorks 追加100アカウント',budget26: 0,
+    actual: 540000, forecast: 0,
+    responsible: '', details: '100アカウント追加54万',
+  },
+  {
+    id: 3, category: '予算化項目', executionDate: '',
+    name: 'アルバイト募集有料施策（茨城大）',budget26: 125000,
+    actual: 8800, forecast: 0,
+    responsible: '', details: '茨城大に募集広告掲載',
+  },
+  {
+    id: 4, category: '予算化項目', executionDate: '',
+    name: 'アルバイト募集有料施策（静岡大）',budget26: 125000,
+    actual: 5500, forecast: 0,
+    responsible: '', details: '静岡大に募集広告掲載',
+  },
+  {
+    id: 5, category: '予算化項目', executionDate: '',
+    name: 'アルバイト募集有料施策（広島大）',budget26: 125000,
+    actual: 3300, forecast: 0,
+    responsible: '', details: '広島大に募集広告掲載',
+  },
+  {
+    id: 6, category: '予算化項目', executionDate: '',
+    name: 'アルバイト募集有料施策（長崎大）',budget26: 125000,
+    actual: 0, forecast: 0,
+    responsible: '', details: '長崎大に募集広告掲載（二重広告掲載）',
+  },
+  {
+    id: 7, category: '予算化項目', executionDate: '',
+    name: 'AI有料アカウント契約料',budget26: 400000,
+    actual: 350000, forecast: 0,
+    responsible: '', details: 'Claude 8名のプロプランを契約',
+  },
+  {
+    id: 8, category: '予算化項目', executionDate: '',
+    name: 'ispring契約費用',budget26: 390000,
+    actual: 0, forecast: 390000,
+    responsible: '', details: '2025年11月に契約更新。次回更新は2026年11月。更新は要検討',
+  },
+  {
+    id: 9, category: '予算化項目', executionDate: '',
+    name: '野球エキスパート慰労会費用',budget26: 200000,
+    actual: 0, forecast: 200000,
+    responsible: '', details: '',
+  },
+  {
+    id: 10, category: '予算化項目', executionDate: '',
+    name: 'バスケエキスパート慰労会費用',budget26: 200000,
+    actual: 0, forecast: 200000,
+    responsible: '', details: '',
+  },
+  {
+    id: 11, category: '予算化項目', executionDate: '',
+    name: 'FBEXP経費精算システム',budget26: 180000,
+    actual: 180000, forecast: 0,
+    responsible: '', details: '',
+  },
+  {
+    id: 12, category: '予算化項目', executionDate: '',
+    name: 'FBEXP納会費用',budget26: 180000,
+    actual: 0, forecast: 180000,
+    responsible: '', details: '',
+  },
+  {
+    id: 13, category: '予算化項目', executionDate: '',
+    name: '書籍雑誌購入費用',budget26: 72000,
+    actual: 50000, forecast: 0,
+    responsible: '', details: '',
+  },
+  {
+    id: 14, category: '予算化項目', executionDate: '',
+    name: '入力室備品',budget26: 50000,
+    actual: 0, forecast: 0,
+    responsible: '', details: '',
+  },
+  {
+    id: 15, category: '予算化項目', executionDate: '',
+    name: 'サッカー映像保管用HDD購入費',budget26: 50000,
+    actual: 0, forecast: 50000,
+    responsible: '', details: '',
+  },
+  {
+    id: 16, category: '予算化項目', executionDate: '',
+    name: '卓球エキスパート慰労会費用',budget26: 50000,
+    actual: 0, forecast: 50000,
+    responsible: '', details: '',
+  },
+  {
+    id: 17, category: '予算化項目', executionDate: '',
+    name: 'DS Football Twitter(X)アカウント有料プランサブスク料',budget26: 9180,
+    actual: 0, forecast: 9180,
+    responsible: '', details: '',
+  },
+  // ── 追加項目 ──
+  {
+    id: 18, category: '追加項目', executionDate: '',
+    name: 'PowerAutomate有料契約',budget26: 49464,
+    actual: 49464, forecast: 0,
+    responsible: '', details: '',
+  },
+];
+
+// ===== ヘルパー =====
+const fmt = (n) => '¥' + Math.abs(n || 0).toLocaleString('ja-JP');
+const fmtDiff = (n) => {
+  if (n === 0) return '±0';
+  return (n > 0 ? '+¥' : '-¥') + Math.abs(n).toLocaleString('ja-JP');
+};
+const pct = (a, b) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
+const toNum = (v) => {
+  const s = String(v).replace(/,/g, '').trim();
+  return s === '' ? 0 : isNaN(Number(s)) ? 0 : Number(s);
+};
+const nextId = (cases) => Math.max(0, ...cases.map((c) => c.id)) + 1;
+const fmtDate = (dateStr) => {
+  if (!dateStr) return '—';
+  return String(dateStr).split('T')[0]; // 日付部分のみ抽出（YYYY-MM-DD）
+};
+
+// ===== GAS API =====
+const fetchFromGAS = async () => {
+  try {
+    const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=getAll`);
+    if (!response.ok) throw new Error('API response error');
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'API error');
+    return result.data || [];
+  } catch (error) {
+    console.error('Failed to fetch from GAS:', error);
+    throw error;
+  }
+};
+
+const addToGAS = async (data) => {
+  try {
+    const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=add`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('API response error');
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'API error');
+    return result.data;
+  } catch (error) {
+    console.error('Failed to add to GAS:', error);
+    throw error;
+  }
+};
+
+const updateInGAS = async (data) => {
+  try {
+    const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=update`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('API response error');
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'API error');
+    return result.data;
+  } catch (error) {
+    console.error('Failed to update in GAS:', error);
+    throw error;
+  }
+};
+
+const deleteFromGAS = async (id) => {
+  try {
+    const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=delete`, {
+      method: 'POST',
+      body: JSON.stringify({ id }),
+    });
+    if (!response.ok) throw new Error('API response error');
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'API error');
+    return result.data;
+  } catch (error) {
+    console.error('Failed to delete from GAS:', error);
+    throw error;
+  }
+};
+
+// ===== スタイル定数 =====
+const C = {
+  bg:      '#0f172a',
+  surface: '#1e293b',
+  border:  '#334155',
+  txt:     '#f1f5f9',
+  muted:   '#94a3b8',
+  dim:     '#64748b',
+  green:   '#10b981',
+  blue:    '#3b82f6',
+  purple:  '#8b5cf6',
+  indigo:  '#6366f1',
+  red:     '#ef4444',
+  orange:  '#f59e0b',
+};
+
+const inputStyle = {
+  width: '100%', padding: '8px 12px', borderRadius: '8px',
+  border: `1px solid ${C.border}`, background: C.bg,
+  color: C.txt, fontSize: '14px', outline: 'none',
+};
+const selectStyle = { ...inputStyle, cursor: 'pointer' };
+const textareaStyle = { ...inputStyle, resize: 'vertical', minHeight: '68px' };
+const btnStyle = (bg, fg = '#fff') => ({
+  padding: '7px 16px', borderRadius: '8px', border: 'none',
+  cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+  background: bg, color: fg,
+});
+const cardStyle = {
+  background: C.surface, border: `1px solid ${C.border}`,
+  borderRadius: '12px', padding: '20px',
+};
+const thStyle = {
+  padding: '10px 12px', textAlign: 'left', fontSize: '11px',
+  color: C.dim, fontWeight: 600, textTransform: 'uppercase',
+  letterSpacing: '0.04em', borderBottom: `1px solid ${C.border}`,
+  whiteSpace: 'nowrap',
+};
+const tdStyle = {
+  padding: '11px 12px', fontSize: '13px',
+  borderBottom: `1px solid #1e293b`, verticalAlign: 'top',
+};
+
+// ===== ProgressBar =====
+function ProgressBar({ label, value, max, color }) {
+  const p = pct(value, max);
+  return (
+    <div style={{ marginBottom: '14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+        <span style={{ fontSize: '12px', color: C.muted }}>{label}</span>
+        <span style={{ fontSize: '12px', color: C.txt, fontWeight: 600 }}>{p}%</span>
+      </div>
+      <div style={{ height: '6px', background: C.bg, borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${p}%`, background: color,
+          borderRadius: '3px', transition: 'width 0.4s ease',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ===== FormModal（追加・編集）=====
+const EMPTY_FORM = {
+  id: null, category: '予算化項目', executionDate: '',
+  name: '', budget26: '', actual: '', forecast: '',
+  responsible: '', details: '',
+};
+
+function FormModal({ initial, onSave, onClose }) {
+  const [form, setForm] = useState(() =>
+    initial
+      ? { ...initial, budget26: initial.budget26 || '', actual: initial.actual || '', forecast: initial.forecast || '' }
+      : { ...EMPTY_FORM }
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const isEdit = !!initial;
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { alert('案件名を入力してください'); return; }
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...form,
+        budget26: toNum(form.budget26),
+        actual:   toNum(form.actual),
+        forecast: toNum(form.forecast),
+        priority: form.category === 'コストセンター原価' ? '-' : form.priority,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const col2 = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' };
+  const fLabel = { fontSize: '12px', color: C.muted, marginBottom: '5px', display: 'block' };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '20px',
+      }}
+    >
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: '16px', width: '100%', maxWidth: '600px',
+        maxHeight: '90vh', overflowY: 'auto', padding: '28px',
+      }}>
+        {/* タイトル */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: C.txt }}>
+            {isEdit ? '案件を編集' : '案件を追加'}
+          </h2>
+          <button onClick={onClose} style={{ ...btnStyle('#334155'), padding: '4px 12px' }}>✕</button>
+        </div>
+
+        <div style={{ display: 'grid', gap: '16px' }}>
+          {/* カテゴリ */}
+          <div>
+            <label style={fLabel}>カテゴリ</label>
+            <select style={selectStyle} value={form.category} onChange={set('category')}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {/* 案件名 */}
+          <div>
+            <label style={fLabel}>案件名 *</label>
+            <input style={inputStyle} value={form.name} onChange={set('name')} placeholder="案件名を入力" />
+          </div>
+
+          {/* 執行日・担当者 */}
+          <div style={col2}>
+            <div>
+              <label style={fLabel}>執行日</label>
+              <input type="date" style={inputStyle} value={form.executionDate} onChange={set('executionDate')} />
+            </div>
+            <div>
+              <label style={fLabel}>担当者</label>
+              <input style={inputStyle} value={form.responsible} onChange={set('responsible')} placeholder="担当者を入力" />
+            </div>
+          </div>
+
+          {/* 26年度予算承認額 */}
+          <div>
+            <label style={fLabel}>26年度予算承認額</label>
+            <input style={inputStyle} value={form.budget26} onChange={set('budget26')} placeholder="0" />
+          </div>
+
+          {/* 実績・見込 */}
+          <div style={col2}>
+            <div>
+              <label style={fLabel}>実績</label>
+              <input style={inputStyle} value={form.actual} onChange={set('actual')} placeholder="0" />
+            </div>
+            <div>
+              <label style={fLabel}>見込</label>
+              <input style={inputStyle} value={form.forecast} onChange={set('forecast')} placeholder="0" />
+            </div>
+          </div>
+
+          {/* 内容詳細 */}
+          <div>
+            <label style={fLabel}>内容詳細</label>
+            <textarea style={textareaStyle} value={form.details} onChange={set('details')} placeholder="詳細を入力" />
+          </div>
+
+          {/* ボタン */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+            <button onClick={onClose} disabled={isSaving} style={{ ...btnStyle('#334155'), opacity: isSaving ? 0.5 : 1 }}>キャンセル</button>
+            <button onClick={handleSave} disabled={isSaving} style={{ ...btnStyle(isSaving ? '#475569' : C.indigo), opacity: isSaving ? 0.6 : 1 }}>
+              {isSaving ? '登録中...' : (isEdit ? '更新する' : '追加する')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== DeleteModal =====
+function DeleteModal({ caseName, onConfirm, onClose }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: '20px',
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: '16px', width: '100%', maxWidth: '400px',
+        padding: '32px', textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '36px', marginBottom: '16px', lineHeight: 1 }}>[ 削除確認 ]</div>
+        <h2 style={{ fontSize: '17px', fontWeight: 700, color: C.txt, marginBottom: '10px' }}>
+          案件を削除しますか？
+        </h2>
+        <p style={{ color: C.muted, fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>
+          「{caseName}」を削除します。<br />この操作は取り消せません。
+        </p>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+          <button onClick={onClose} disabled={isDeleting} style={{ ...btnStyle('#334155'), opacity: isDeleting ? 0.5 : 1 }}>キャンセル</button>
+          <button onClick={handleConfirm} disabled={isDeleting} style={{ ...btnStyle(isDeleting ? '#5a1a1a' : C.red), opacity: isDeleting ? 0.6 : 1 }}>
+            {isDeleting ? '削除中...' : '削除する'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== カテゴリ別テーブル =====
+function CategoryTable({ cases, category, accentColor, onEdit, onDelete }) {
+  const isReadOnly = category === 'コストセンター原価';
+  const items = cases.filter((c) => c.category === category);
+
+  return (
+    <div style={{ marginBottom: '24px' }}>
+      {/* セクションヘッダ */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+        <span style={{
+          background: accentColor + '25', color: accentColor,
+          padding: '2px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700,
+        }}>
+          {category}
+        </span>
+        <span style={{ color: C.dim, fontSize: '12px' }}>{items.length}件</span>
+        {isReadOnly && (
+          <span style={{
+            color: C.dim, fontSize: '11px', background: '#1a2332',
+            padding: '2px 8px', borderRadius: '4px', border: `1px solid ${C.border}`,
+          }}>参照のみ</span>
+        )}
+      </div>
+
+      <div style={{ ...cardStyle, padding: 0, overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#0a1020' }}>
+              <th style={thStyle}>案件名</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>26年度予算</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>実績</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>見込</th>
+              <th style={{ ...thStyle, textAlign: 'right' }}>予算差</th>
+              <th style={thStyle}>担当者</th>
+              <th style={thStyle}>執行日</th>
+              {!isReadOnly && <th style={{ ...thStyle, width: '90px' }}></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={isReadOnly ? 7 : 8}
+                  style={{ ...tdStyle, textAlign: 'center', color: C.dim, padding: '28px' }}>
+                  案件がありません
+                </td>
+              </tr>
+            ) : items.map((c) => {
+              const diff = (c.budget26 || 0) - ((c.actual || 0) + (c.forecast || 0));
+              const diffColor = diff < 0 ? C.red : C.purple;
+
+              return (
+                <tr key={c.id}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#0f1a2e'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  style={{ transition: 'background 0.15s' }}
+                >
+                  <td style={{ ...tdStyle, maxWidth: '220px' }}>
+                    <div style={{ fontWeight: 600, color: C.txt, marginBottom: '3px' }}>{c.name}</div>
+                    {c.details && (
+                      <div style={{ fontSize: '11px', color: C.dim, lineHeight: 1.5 }}>{c.details}</div>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: C.muted }}>
+                    {c.budget26 ? fmt(c.budget26) : '—'}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: C.green, fontWeight: c.actual ? 600 : 400 }}>
+                    {c.actual ? fmt(c.actual) : '—'}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: C.blue }}>
+                    {c.forecast ? fmt(c.forecast) : '—'}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', color: diffColor, fontWeight: 600 }}>
+                    {isReadOnly ? '—' : fmtDiff(diff)}
+                  </td>
+                  <td style={{ ...tdStyle, color: C.muted, fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    {c.responsible || '—'}
+                  </td>
+                  <td style={{ ...tdStyle, color: C.muted, fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    {fmtDate(c.executionDate)}
+                  </td>
+                  {!isReadOnly && (
+                    <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => onEdit(c)}
+                          style={{ ...btnStyle('#334155'), padding: '4px 10px', fontSize: '12px' }}
+                        >
+                          編集
+                        </button>
+                        <button
+                          onClick={() => onDelete(c)}
+                          style={{ ...btnStyle('#3b0f0f'), padding: '4px 10px', fontSize: '12px', color: '#fca5a5' }}
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ===== メインアプリ =====
+function App() {
+  const [cases, setCases] = useState([]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [modal, setModal] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastSync, setLastSync] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  // modal: null | { type:'add' } | { type:'edit', case } | { type:'delete', case }
+
+  // GASからデータを初期読込
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchFromGAS();
+        setCases(data);
+        setLastSync(new Date());
+      } catch (err) {
+        setError('データの読込に失敗しました: ' + err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // 5分ごとに自動同期
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const data = await fetchFromGAS();
+        setCases(data);
+        setLastSync(new Date());
+      } catch (err) {
+        console.error('Auto-sync failed:', err);
+      }
+    }, AUTO_SYNC_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 手動同期
+  const handleSync = async () => {
+    try {
+      setIsSyncing(true);
+      setError(null);
+      const data = await fetchFromGAS();
+      setCases(data);
+      setLastSync(new Date());
+    } catch (err) {
+      setError('同期に失敗しました: ' + err.message);
+      console.error(err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // ── サマリー計算（コストセンター原価は除外）──
+  const budgetCases = cases.filter((c) => c.category !== 'コストセンター原価');
+  const approvedBudget     = budgetCases.reduce((s, c) => s + (c.budget26  || 0), 0);
+  const totalActual        = budgetCases.reduce((s, c) => s + (c.actual    || 0), 0);
+  const totalForecast      = budgetCases.reduce((s, c) => s + (c.forecast  || 0), 0);
+  const actualPlusForecast = totalActual + totalForecast;
+  const budgetRemaining    = YEARLY_BUDGET - actualPlusForecast;
+
+  // ── フィルタリング ──
+  const filtered = cases.filter((c) => {
+    if (search && !c.name.includes(search) && !c.details.includes(search)) return false;
+    if (statusFilter === 'actual'   && !(c.actual   > 0)) return false;
+    if (statusFilter === 'forecast' && !(c.forecast > 0)) return false;
+    if (statusFilter === 'none'     && (c.actual > 0 || c.forecast > 0)) return false;
+    return true;
+  });
+
+  // ── CRUD ──
+  const handleSave = async (formData) => {
+    try {
+      const cleanData = { ...formData };
+      delete cleanData.priority;
+
+      if (modal.type === 'add') {
+        // 楽観的更新：ローカルで即座に追加
+        const newCase = { ...cleanData, id: nextId(cases) };
+        setCases(prev => [...prev, newCase]);
+
+        // バックグラウンドで GAS に送信
+        (async () => {
+          try {
+            await addToGAS(cleanData);
+            const data = await fetchFromGAS();
+            setCases(data);
+            setLastSync(new Date());
+          } catch (err) {
+            // エラー時：再度読込んでロールバック
+            try {
+              const data = await fetchFromGAS();
+              setCases(data);
+            } catch {}
+            setError('保存に失敗しました: ' + err.message);
+          }
+        })();
+      } else {
+        // 楽観的更新：ローカルで即座に更新
+        setCases(prev => prev.map(c => c.id === cleanData.id ? cleanData : c));
+
+        // バックグラウンドで GAS に送信
+        (async () => {
+          try {
+            await updateInGAS(cleanData);
+            const data = await fetchFromGAS();
+            setCases(data);
+            setLastSync(new Date());
+          } catch (err) {
+            // エラー時：再度読込んでロールバック
+            try {
+              const data = await fetchFromGAS();
+              setCases(data);
+            } catch {}
+            setError('保存に失敗しました: ' + err.message);
+          }
+        })();
+      }
+      setModal(null);
+      setError(null);
+    } catch (err) {
+      setError('保存に失敗しました: ' + err.message);
+      console.error(err);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      const caseId = modal.case.id;
+
+      // 楽観的更新：ローカルで即座に削除
+      setCases(prev => prev.filter(c => c.id !== caseId));
+
+      // バックグラウンドで GAS に送信
+      (async () => {
+        try {
+          await deleteFromGAS(caseId);
+          const data = await fetchFromGAS();
+          setCases(data);
+          setLastSync(new Date());
+        } catch (err) {
+          // エラー時：再度読込んでロールバック
+          try {
+            const data = await fetchFromGAS();
+            setCases(data);
+          } catch {}
+          setError('削除に失敗しました: ' + err.message);
+        }
+      })();
+
+      setModal(null);
+      setError(null);
+    } catch (err) {
+      setError('削除に失敗しました: ' + err.message);
+      console.error(err);
+    }
+  };
+
+  const summaryCards = [
+    { label: '年間予算',    value: YEARLY_BUDGET,      color: C.muted },
+    { label: '予算承認額',  value: approvedBudget,     color: C.txt },
+    { label: '実績',        value: totalActual,        color: C.green },
+    { label: '使用見込み',  value: totalForecast,      color: C.blue },
+    { label: '実績＋見込',  value: actualPlusForecast, color: C.purple },
+    { label: '予算残',      value: budgetRemaining,    color: budgetRemaining < 0 ? C.red : C.orange },
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: C.muted }}>
+          <div style={{ fontSize: '16px', marginBottom: '10px' }}>読込中...</div>
+          <div style={{ fontSize: '12px' }}>Google Sheetsからデータを取得しています</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg, padding: '28px 24px' }}>
+
+      {/* エラー表示 */}
+      {error && (
+        <div style={{
+          background: '#3b0f0f', border: `1px solid #7f1d1d`, color: '#fca5a5',
+          padding: '12px 16px', borderRadius: '8px', marginBottom: '16px',
+          fontSize: '13px',
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* ヘッダ */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: C.txt, letterSpacing: '-0.02em' }}>
+            データ推進部 運営費管理 2026年度
+          </h1>
+          <div style={{ fontSize: '12px', color: C.dim, marginTop: '3px' }}>
+            データスタジアム株式会社 · データ推進部（約30名）
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {lastSync && (
+            <div style={{ fontSize: '11px', color: C.dim }}>
+              最終同期: {lastSync.toLocaleTimeString('ja-JP')}
+            </div>
+          )}
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            style={{ ...btnStyle(isSyncing ? '#334155' : C.purple), padding: '8px 14px', fontSize: '12px', opacity: isSyncing ? 0.6 : 1 }}
+          >
+            {isSyncing ? '同期中...' : '同期'}
+          </button>
+          <button
+            onClick={() => setModal({ type: 'add' })}
+            style={{ ...btnStyle(C.indigo), padding: '10px 22px', fontSize: '14px', borderRadius: '10px' }}
+          >
+            ＋ 案件を追加
+          </button>
+        </div>
+      </div>
+
+      {/* サマリーカード 6枚 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '18px' }}>
+        {summaryCards.map(({ label, value, color }) => (
+          <div key={label} style={cardStyle}>
+            <div style={{ fontSize: '12px', color: C.dim, marginBottom: '6px' }}>{label}</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color }}>{fmt(value)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 予算消化バー */}
+      <div style={{ ...cardStyle, marginBottom: '20px' }}>
+        <ProgressBar
+          label={`実績＋見込消化率 ─ ${fmt(actualPlusForecast)} / ${fmt(YEARLY_BUDGET)}`}
+          value={actualPlusForecast} max={YEARLY_BUDGET} color={C.purple}
+        />
+        <ProgressBar
+          label={`実績消化率 ─ ${fmt(totalActual)} / ${fmt(YEARLY_BUDGET)}`}
+          value={totalActual} max={YEARLY_BUDGET} color={C.green}
+        />
+      </div>
+
+      {/* フィルタ */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          style={{ ...inputStyle, maxWidth: '260px' }}
+          placeholder="案件名・詳細で検索..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {STATUS_FILTERS.map((f) => (
+            <button key={f.value} onClick={() => setStatusFilter(f.value)}
+              style={{
+                ...btnStyle(statusFilter === f.value ? C.indigo : '#1e293b'),
+                border: `1px solid ${statusFilter === f.value ? C.indigo : C.border}`,
+                fontSize: '12px', padding: '6px 14px',
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <span style={{ color: C.dim, fontSize: '12px', marginLeft: 'auto' }}>
+          {filtered.length} 件表示
+        </span>
+      </div>
+
+      {/* 案件テーブル（カテゴリ別）*/}
+      <CategoryTable cases={filtered} category="予算化項目"      accentColor={C.indigo} onEdit={(c) => setModal({ type:'edit', case: c })} onDelete={(c) => setModal({ type:'delete', case: c })} />
+      <CategoryTable cases={filtered} category="追加項目"        accentColor={C.green}  onEdit={(c) => setModal({ type:'edit', case: c })} onDelete={(c) => setModal({ type:'delete', case: c })} />
+      <CategoryTable cases={filtered} category="コストセンター原価" accentColor={C.muted}  onEdit={null} onDelete={null} />
+
+      {/* フッタ */}
+      <div style={{ textAlign: 'center', color: C.dim, fontSize: '11px', marginTop: '32px', paddingTop: '20px', borderTop: `1px solid ${C.border}` }}>
+        データ推進部 運営費管理アプリ ─ フェーズ② Google Sheets連携版
+      </div>
+
+      {/* モーダル */}
+      {(modal?.type === 'add' || modal?.type === 'edit') && (
+        <FormModal
+          initial={modal.type === 'edit' ? modal.case : null}
+          onSave={handleSave}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'delete' && (
+        <DeleteModal
+          caseName={modal.case.name}
+          onConfirm={handleConfirmDelete}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
