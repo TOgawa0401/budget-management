@@ -574,6 +574,7 @@ function App() {
   const [error, setError] = useState(null);
   const [lastSync, setLastSync] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingOps, setPendingOps] = useState(new Set()); // 処理中のID（削除など）
   // modal: null | { type:'add' } | { type:'edit', case } | { type:'delete', case }
 
   // GASからデータを初期読込
@@ -595,10 +596,15 @@ function App() {
     loadData();
   }, []);
 
-  // 5分ごとに自動同期
+  // 5分ごとに自動同期（ただし処理中の操作がある場合はスキップ）
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
+        // 処理中の操作がある場合はスキップ
+        if (pendingOps.size > 0) {
+          console.log('Skipping auto-sync due to pending operations');
+          return;
+        }
         const data = await fetchFromGAS();
         setCases(data);
         setLastSync(new Date());
@@ -607,7 +613,7 @@ function App() {
       }
     }, AUTO_SYNC_INTERVAL);
     return () => clearInterval(interval);
-  }, []);
+  }, [pendingOps]);
 
   // 手動同期
   const handleSync = async () => {
@@ -647,11 +653,13 @@ function App() {
     try {
       const cleanData = { ...formData };
       delete cleanData.priority;
+      const opId = `op-${Date.now()}-${Math.random()}`; // ユニークな操作ID
 
       if (modal.type === 'add') {
         // 楽観的更新：ローカルで即座に追加
         const newCase = { ...cleanData, id: nextId(cases) };
         setCases(prev => [...prev, newCase]);
+        setPendingOps(prev => new Set([...prev, opId]));
 
         // バックグラウンドで GAS に送信
         (async () => {
@@ -667,11 +675,18 @@ function App() {
               setCases(data);
             } catch {}
             setError('保存に失敗しました: ' + err.message);
+          } finally {
+            setPendingOps(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(opId);
+              return newSet;
+            });
           }
         })();
       } else {
         // 楽観的更新：ローカルで即座に更新
         setCases(prev => prev.map(c => c.id === cleanData.id ? cleanData : c));
+        setPendingOps(prev => new Set([...prev, opId]));
 
         // バックグラウンドで GAS に送信
         (async () => {
@@ -687,6 +702,12 @@ function App() {
               setCases(data);
             } catch {}
             setError('保存に失敗しました: ' + err.message);
+          } finally {
+            setPendingOps(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(opId);
+              return newSet;
+            });
           }
         })();
       }
@@ -705,10 +726,14 @@ function App() {
       // 楽観的更新：ローカルで即座に削除
       setCases(prev => prev.filter(c => c.id !== caseId));
 
+      // 処理中の操作を追跡
+      setPendingOps(prev => new Set([...prev, caseId]));
+
       // バックグラウンドで GAS に送信
       (async () => {
         try {
           await deleteFromGAS(caseId);
+          // 削除成功後、サーバーから最新データを取得
           const data = await fetchFromGAS();
           setCases(data);
           setLastSync(new Date());
@@ -719,6 +744,13 @@ function App() {
             setCases(data);
           } catch {}
           setError('削除に失敗しました: ' + err.message);
+        } finally {
+          // 処理中フラグを解除
+          setPendingOps(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(caseId);
+            return newSet;
+          });
         }
       })();
 
