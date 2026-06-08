@@ -14,6 +14,7 @@
     ::-webkit-scrollbar-track { background: #1e293b; }
     ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -42,110 +43,128 @@ const INITIAL_CASES = [
     id: 1, category: '予算化項目', executionDate: '',
     name: 'LineWorks 契約費用', budget26: 2160000,
     actual: 2160000, forecast: 0,
-    responsible: '', details: '216万で400アカウントで契約。2026年4月契約',
+    responsible: '', details: '216万で400アカウントで契約。2026年4月契約', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 2, category: '予算化項目', executionDate: '',
     name: 'LineWorks 追加100アカウント',budget26: 0,
     actual: 540000, forecast: 0,
-    responsible: '', details: '100アカウント追加54万',
+    responsible: '', details: '100アカウント追加54万', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 3, category: '予算化項目', executionDate: '',
     name: 'アルバイト募集有料施策（茨城大）',budget26: 125000,
     actual: 8800, forecast: 0,
-    responsible: '', details: '茨城大に募集広告掲載',
+    responsible: '', details: '茨城大に募集広告掲載', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 4, category: '予算化項目', executionDate: '',
     name: 'アルバイト募集有料施策（静岡大）',budget26: 125000,
     actual: 5500, forecast: 0,
-    responsible: '', details: '静岡大に募集広告掲載',
+    responsible: '', details: '静岡大に募集広告掲載', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 5, category: '予算化項目', executionDate: '',
     name: 'アルバイト募集有料施策（広島大）',budget26: 125000,
     actual: 3300, forecast: 0,
-    responsible: '', details: '広島大に募集広告掲載',
+    responsible: '', details: '広島大に募集広告掲載', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 6, category: '予算化項目', executionDate: '',
     name: 'アルバイト募集有料施策（長崎大）',budget26: 125000,
     actual: 0, forecast: 0,
-    responsible: '', details: '長崎大に募集広告掲載（二重広告掲載）',
+    responsible: '', details: '長崎大に募集広告掲載（二重広告掲載）', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 7, category: '予算化項目', executionDate: '',
     name: 'AI有料アカウント契約料',budget26: 400000,
     actual: 350000, forecast: 0,
-    responsible: '', details: 'Claude 8名のプロプランを契約',
+    responsible: '', details: 'Claude 8名のプロプランを契約', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 8, category: '予算化項目', executionDate: '',
     name: 'ispring契約費用',budget26: 390000,
     actual: 0, forecast: 390000,
-    responsible: '', details: '2025年11月に契約更新。次回更新は2026年11月。更新は要検討',
+    responsible: '', details: '2025年11月に契約更新。次回更新は2026年11月。更新は要検討', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 9, category: '予算化項目', executionDate: '',
     name: '野球エキスパート慰労会費用',budget26: 200000,
     actual: 0, forecast: 200000,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 10, category: '予算化項目', executionDate: '',
     name: 'バスケエキスパート慰労会費用',budget26: 200000,
     actual: 0, forecast: 200000,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 11, category: '予算化項目', executionDate: '',
     name: 'FBEXP経費精算システム',budget26: 180000,
     actual: 180000, forecast: 0,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 12, category: '予算化項目', executionDate: '',
     name: 'FBEXP納会費用',budget26: 180000,
     actual: 0, forecast: 180000,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 13, category: '予算化項目', executionDate: '',
     name: '書籍雑誌購入費用',budget26: 72000,
     actual: 50000, forecast: 0,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 14, category: '予算化項目', executionDate: '',
     name: '入力室備品',budget26: 50000,
     actual: 0, forecast: 0,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 15, category: '予算化項目', executionDate: '',
     name: 'サッカー映像保管用HDD購入費',budget26: 50000,
     actual: 0, forecast: 50000,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 16, category: '予算化項目', executionDate: '',
     name: '卓球エキスパート慰労会費用',budget26: 50000,
     actual: 0, forecast: 50000,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   {
     id: 17, category: '予算化項目', executionDate: '',
     name: 'DS Football Twitter(X)アカウント有料プランサブスク料',budget26: 9180,
     actual: 0, forecast: 9180,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
   // ── 追加項目 ──
   {
     id: 18, category: '追加項目', executionDate: '',
     name: 'PowerAutomate有料契約',budget26: 49464,
     actual: 49464, forecast: 0,
-    responsible: '', details: '',
+    responsible: '', details: '', proposalUrl: '',
+    kintone_record_id: '', kintone_import_timestamp: '', kintone_sync_status: '',
   },
 ];
 
@@ -398,6 +417,12 @@ function FormModal({ initial, onSave, onClose }) {
             <textarea style={textareaStyle} value={form.details} onChange={set('details')} placeholder="詳細を入力" />
           </div>
 
+          {/* 稟議ページ URL */}
+          <div>
+            <label style={fLabel}>稟議ページ URL</label>
+            <input style={inputStyle} value={form.proposalUrl || ''} onChange={set('proposalUrl')} placeholder="https://dtsmx.cybozu.com/k/..." />
+          </div>
+
           {/* ボタン */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '4px' }}>
             <button onClick={onClose} disabled={isSaving} style={{ ...btnStyle('#334155'), opacity: isSaving ? 0.5 : 1 }}>キャンセル</button>
@@ -536,24 +561,56 @@ function CategoryTable({ cases, category, accentColor, onEdit, onDelete }) {
                   <td style={{ ...tdStyle, color: C.muted, fontSize: '12px', whiteSpace: 'nowrap' }}>
                     {fmtDate(c.executionDate)}
                   </td>
-                  {!isReadOnly && (
-                    <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button
-                          onClick={() => onEdit(c)}
-                          style={{ ...btnStyle('#334155'), padding: '4px 10px', fontSize: '12px' }}
-                        >
-                          編集
-                        </button>
-                        <button
-                          onClick={() => onDelete(c)}
-                          style={{ ...btnStyle('#3b0f0f'), padding: '4px 10px', fontSize: '12px', color: '#fca5a5' }}
-                        >
-                          削除
-                        </button>
-                      </div>
-                    </td>
-                  )}
+                  <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <a
+                        href={c.proposalUrl || '#'}
+                        target={c.proposalUrl ? '_blank' : undefined}
+                        rel={c.proposalUrl ? 'noopener noreferrer' : undefined}
+                        onClick={(e) => !c.proposalUrl && e.preventDefault()}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          borderRadius: '4px',
+                          background: c.proposalUrl ? '#5b21b6' : '#2d3748',
+                          color: c.proposalUrl ? '#e9d5ff' : '#8b8b9a',
+                          textDecoration: 'none',
+                          cursor: c.proposalUrl ? 'pointer' : 'not-allowed',
+                          opacity: c.proposalUrl ? 1 : 0.5,
+                          transition: 'all 0.2s',
+                          display: 'inline-block',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (c.proposalUrl) {
+                            e.currentTarget.style.background = '#7c3aed';
+                            e.currentTarget.style.color = '#f3e8ff';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = c.proposalUrl ? '#5b21b6' : '#2d3748';
+                          e.currentTarget.style.color = c.proposalUrl ? '#e9d5ff' : '#8b8b9a';
+                        }}
+                      >
+                        稟議ページ
+                      </a>
+                      {!isReadOnly && (
+                        <>
+                          <button
+                            onClick={() => onEdit(c)}
+                            style={{ ...btnStyle('#334155'), padding: '4px 10px', fontSize: '12px' }}
+                          >
+                            編集
+                          </button>
+                          <button
+                            onClick={() => onDelete(c)}
+                            style={{ ...btnStyle('#3b0f0f'), padding: '4px 10px', fontSize: '12px', color: '#fca5a5' }}
+                          >
+                            削除
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -575,6 +632,8 @@ function App() {
   const [lastSync, setLastSync] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingOps, setPendingOps] = useState(new Set()); // 処理中のID（削除など）
+  const [isImportingFromKintone, setIsImportingFromKintone] = useState(false); // kintone インポート進行中
+  const [lastKintoneImportStatus, setLastKintoneImportStatus] = useState(null); // 前回の kintone インポート結果
   // modal: null | { type:'add' } | { type:'edit', case } | { type:'delete', case }
 
   // GASからデータを初期読込
@@ -628,6 +687,51 @@ function App() {
       console.error(err);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  // kintone からの手動インポート
+  const handleKintoneImport = async () => {
+    try {
+      setIsImportingFromKintone(true);
+      setError(null);
+
+      // GAS の importFromKintone アクション を呼び出し
+      const response = await fetch(GAS_DEPLOYMENT_URL, {
+        method: 'POST',
+        payload: JSON.stringify({ action: 'importFromKintone' }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // インポート成功：データを再読込
+        const data = await fetchFromGAS();
+        setCases(data);
+        setLastKintoneImportStatus({
+          success: true,
+          count: result.data.imported ? result.data.imported.length : 0,
+          timestamp: new Date().toLocaleString('ja-JP'),
+          message: `${result.data.imported ? result.data.imported.length : 0}件をインポート`,
+        });
+      } else {
+        setLastKintoneImportStatus({
+          success: false,
+          timestamp: new Date().toLocaleString('ja-JP'),
+          message: result.error || 'インポートに失敗しました',
+        });
+        setError(`kintone インポート失敗: ${result.error}`);
+      }
+    } catch (err) {
+      setLastKintoneImportStatus({
+        success: false,
+        timestamp: new Date().toLocaleString('ja-JP'),
+        message: err.message,
+      });
+      setError(`kintone インポートエラー: ${err.message}`);
+      console.error('Kintone import error:', err);
+    } finally {
+      setIsImportingFromKintone(false);
     }
   };
 
@@ -806,7 +910,7 @@ function App() {
             データスタジアム株式会社 · データ推進部（約30名）
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           {lastSync && (
             <div style={{ fontSize: '11px', color: C.dim }}>
               最終同期: {lastSync.toLocaleTimeString('ja-JP')}
@@ -819,6 +923,40 @@ function App() {
           >
             {isSyncing ? '同期中...' : '同期'}
           </button>
+          <button
+            onClick={handleKintoneImport}
+            disabled={isImportingFromKintone}
+            style={{
+              ...btnStyle(isImportingFromKintone ? '#334155' : '#16a34a'),
+              padding: '8px 14px',
+              fontSize: '12px',
+              opacity: isImportingFromKintone ? 0.6 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {isImportingFromKintone ? (
+              <>
+                <span style={{ animation: 'spin 1s linear infinite' }}>⟳</span>
+                インポート中...
+              </>
+            ) : (
+              <>⬇ kintone から同期</>
+            )}
+          </button>
+          {lastKintoneImportStatus && (
+            <div style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              background: lastKintoneImportStatus.success ? '#10b98110' : '#ef444410',
+              color: lastKintoneImportStatus.success ? '#10b981' : '#ef4444',
+              whiteSpace: 'nowrap',
+            }}>
+              {lastKintoneImportStatus.success ? '✓' : '✕'} {lastKintoneImportStatus.message}
+            </div>
+          )}
           <a
             href="https://dtsmx.cybozu.com/k/375/?view=6454508&q=f13485939%20like%20%22%E3%83%87%E3%83%BC%E3%82%BF%E6%8E%A8%E9%80%B2%22%20and%20f6454445%20%3E%3D%20%222026-03-31T15%3A00%3A00.000Z%22#sort_0=f5542296&order_0=desc&size=20"
             target="_blank"
