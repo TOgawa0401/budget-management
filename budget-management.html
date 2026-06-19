@@ -697,10 +697,11 @@ function App() {
       setError(null);
 
       // GAS の importFromKintone アクション を呼び出し
-      const response = await fetch(GAS_DEPLOYMENT_URL, {
+      const response = await fetch(`${GAS_DEPLOYMENT_URL}?action=importFromKintone`, {
         method: 'POST',
-        payload: JSON.stringify({ action: 'importFromKintone' }),
+        body: JSON.stringify({ action: 'importFromKintone' }),
       });
+      if (!response.ok) throw new Error('API response error');
 
       const result = await response.json();
 
